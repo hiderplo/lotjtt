@@ -1,0 +1,146 @@
+#variable {shipname} {Unitech Freighter}
+#variable {toCockpit} {n;n;n}
+#variable {toHatch} {s;s;s}
+#VARIABLE {cargo}  {weapons}
+#variable {cargorunning} {0}
+#variable {foundit} {0}
+#variable {destination} {Y'Toub 0 0 -500}
+#variable {planet} {Nal Hutta}
+#variable {pad} {gate}
+#variable {autofly} {0}
+
+#alias {startCargoRun} {
+  #variable {autofly} {1};
+  #variable {cargorunning} {1};
+}
+
+#alias {stopCargoRun} {
+  #variable {autofly} {0};
+  #variable {cargorunning} {0};
+}
+
+#action {You find a contact willing to pay %1 credits to unload 8000 units of smuggled %2.} 
+{
+  #variable {var1} {%1};
+  #variable {var2} {%2};
+  #variable {foundit} {0};
+  #regexp {$var2} {Weapons} 
+  {
+    #variable {cargo} {rock ivory};
+    #variable {foundit} {1}
+  } {};
+  #regexp {$var2} {Rock ivory}
+  {
+    #variable {cargo} {spice};
+    #variable {foundit} {1};
+  } {};
+  #regexp {$var2} {Spice} 
+  {
+    #variable {cargo} {weapons};
+    #variable {foundit} {1};
+  } {};
+  #IF {$foundit == 1} 
+  {
+    #IF {$cargorunning == 1} {buycontraband "$shipname" "$cargo" 8000};
+  } {#echo {Failed to set new cargo after selling $var2 for $var1;}};
+}
+
+#action {You lose your cargo!} 
+{  
+  #variable {var1} {0};
+  #variable {var2} {$cargo};
+  #variable {foundit} {0};
+  #regexp {$var2} {Weapons} 
+  {
+    #variable {cargo} {rock ivory};
+    #variable {foundit} {1}
+  } {};
+  #regexp {$var2} {Rock ivory}
+  {
+    #variable {cargo} {spice};
+    #variable {foundit} {1};
+  } {};
+  #regexp {$var2} {Spice} 
+  {
+    #variable {cargo} {weapons};
+    #variable {foundit} {1};
+  } {};
+  #if {$cargorunning == 1} {buycontraband "$shipname" "$cargo" 8000} {};
+}
+
+#action {You lose your credits!} {
+  #if {$cargorunning == 1} {buycontraband "$shipname" "$cargo" 8000} {};
+}
+
+#action {You pay %1 credits to have 8000 units of smuggled %2 loaded on to your ship.} 
+{
+  #variable {var1} {%1};
+  #variable {var2} {%2};
+  #variable {foundit} {0};
+  #regexp {$var2} {Weapons} 
+  {
+    #variable {destination} {Corellian 1567 -10000 21312};
+    #variable {planet} {Corellia};
+    #variable {pad} {Gamma Landing Pad};
+    #variable {foundit} {1};
+  } {};
+  #regexp {$var2} {Rock ivory} 
+  {
+    #variable {destination} {Y'Toub 0 0 -500};
+    #variable {planet} {Nal Hutta};
+    #variable {pad} {gate};
+    #variable {foundit} {1};
+  } {};
+  #regexp {$var2} {Spice} 
+  {
+    #variable {destination} {Horuset 0 0 -500};
+    #variable {planet} {Korriban};
+    #variable {pad} {dresh};
+    #variable {foundit} {1};
+  } {};
+  #IF {$foundit == 1} 
+  {
+    openhatch "$shipname";
+    board "$shipname";
+    $toCockpit;
+    pilot;
+    autopilot off;
+    launch;
+  } {#echo {Failed to set destination after buying $var2 for $var1}};
+}
+
+#action {Launch complete.} 
+{
+  #if {$autofly == 1} {calc $destination} {};
+}
+
+#ACTION {[Status]: Hyperspace Calculations have been completed.}
+{
+     #if {$autofly == 1} {hyper} {};
+}
+
+#ACTION {You are too close to %1 to make the jump to lightspeed!}
+{
+     #delay {5} {hyper}
+}
+
+
+
+#ACTION {Hyperjump complete.}
+{
+     #if {$autofly == 1} {course $planet} {};
+}
+
+#action {You begin orbiting %1.} {
+  #if {$autofly == 1} {land "$planet" $pad} {};
+}
+
+#action {You feel a slight thud as the ship sets down on the ground.} 
+{
+  autopilot on;
+  $toHatch;
+  openhatch;
+  leaveship;
+  refuel "$shipname" full;
+  #IF {$cargorunning == 1} {sellcontraband "$shipname" "$cargo" 8000};
+}
